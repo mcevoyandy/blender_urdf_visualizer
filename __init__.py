@@ -14,70 +14,39 @@ bl_info = {
 
 import bpy
 
-from bpy.props import (PointerProperty,
-                       StringProperty)
-from bpy.types import (Operator,
-                       PropertyGroup)
+from bpy.props import PointerProperty
 
-from . load_urdf import UrdfLoader
+from . load_urdf import (URDF_PT_UrdfLoadPanel,
+                         UrdfLoadProperties,
+                         UrdfLoadStart)
+from . joint_controller import (JointControllerProperties,
+                                URDF_PT_JointControllerPanel)
 
-class UrdfProperties(PropertyGroup):
-    urdf_package: StringProperty(
-        name = 'URDF package',
-        description = 'desc',
-        default = '',
-        maxlen = 1024,
-    )
-
-class AddUrdf(Operator):
-    bl_label = 'Add URDF'
-    bl_idname = 'urdf.printout'
-
-    def execute(self, context):
-        scene = context.scene
-        urdf_tool = scene.urdf_tool
-
-        test = UrdfLoader()
-        print('execute AddUrdf')
-
-        return {'FINISHED'}
-
-
-class OBJECT_PT_UrdfPanel(bpy.types.Panel):
-    """Load a URDF into Blender."""
-    bl_label = 'URDF label'
-    bl_category = 'Load URDF'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="layout label")
-        scene = context.scene
-        urdf_tool = scene.urdf_tool
-
-        layout.prop(urdf_tool, "urdf_package")
-        layout.operator("urdf.printout")
-        layout.separator()
 
 classes = (
-    UrdfProperties,
-    AddUrdf,
-    OBJECT_PT_UrdfPanel
+    JointControllerProperties,
+    URDF_PT_UrdfLoadPanel,
+    UrdfLoadProperties,
+    UrdfLoadStart,
 )
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.urdf_tool = PointerProperty(type=UrdfProperties)
-    # bpy.types.VIEW3D_MT_add.append(menu_func)
+    bpy.types.Scene.urdf_tool = PointerProperty(type=UrdfLoadProperties)
     print('Finished registering URDF addon')
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    try:
+        bpy.utils.unregister_class(URDF_PT_JointControllerPanel)
+    except:
+        pass
+
     del bpy.types.Scene.urdf_tool
-    # bpy.types.VIEW3D_MT_add.remove(menu_func)
+    del bpy.types.Scene.joint_tool
     print('Finished unregistering URDF addon')
 
 if __name__ == "__main__":
