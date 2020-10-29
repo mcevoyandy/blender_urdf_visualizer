@@ -1,6 +1,7 @@
 import bpy
 
-from bpy.props import (PointerProperty,
+from bpy.props import (FloatProperty,
+                       PointerProperty,
                        StringProperty)
 from bpy.types import (Operator,
                        PropertyGroup)
@@ -27,12 +28,47 @@ class UrdfLoadStart(Operator):
         print('execute LoadUrdf')
         test = LoadUrdf()
         print('num_joints = ', URDF_PT_JointControllerPanel.num_joints)
-        URDF_PT_JointControllerPanel.num_joints = 5
+        URDF_PT_JointControllerPanel.num_joints = 1
         print('num_joints = ', URDF_PT_JointControllerPanel.num_joints)
         URDF_PT_JointControllerPanel.joint_min_limits[0] = -3.14159
+        print(JointControllerProperties)
 
         bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
         bpy.utils.register_class(URDF_PT_JointControllerPanel)
+
+        joint_min = -3
+        joint_max = 3
+
+        # Try to dynamically create the same class
+        JointProps = type(
+            # Class name
+            "JointProps",
+
+            # Base class
+            (bpy.types.PropertyGroup, ),
+
+            # Dictionary of properties
+            {
+                '__annotations__':
+                {
+                    'joint0':
+                    (
+                        FloatProperty,
+                        {
+                            'name': 'j0',
+                            'description': 'desc',
+                            'default': 0,
+                            'min': joint_min,
+                            'max': joint_max,
+                        }
+                    )
+                }
+            }
+        )
+        print(JointProps)
+        bpy.utils.register_class(JointProps)
+        bpy.types.Scene.other_joint_tool = PointerProperty(type=JointProps)
+
         return {'FINISHED'}
 
 class URDF_PT_UrdfLoadPanel(bpy.types.Panel):

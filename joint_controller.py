@@ -81,8 +81,10 @@ class URDF_PT_JointControllerPanel(bpy.types.Panel):
         layout.label(text = 'joint angles')
         scene = context.scene
         joint_tool = scene.joint_tool
+        other_joint_tool = scene.other_joint_tool
 
         for i in range(0, self.num_joints):
             layout.prop(joint_tool, self.joint_names[i])
+        layout.prop(other_joint_tool, 'joint0')
 
         layout.separator()
