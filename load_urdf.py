@@ -25,6 +25,16 @@ class UrdfLoadProperties(PropertyGroup):
         maxlen = 1024,
     )
 
+def float_callback(self, context):
+    print('\nfloat callback')
+    jt = context.scene.joint_tool
+    print('jt.items  = ', jt.items())
+    print('jt.keys   = ', jt.keys())
+    print('jt.values = ', jt.values())
+    print('jt.__annotations__.keys()   = ', jt.__annotations__.keys())
+    print('jt.__annotations__.values() = ', jt.__annotations__.values())
+
+
 class UrdfLoadStart(Operator):
     bl_label = 'Load URDF'
     bl_idname = 'urdf.printout'
@@ -67,6 +77,19 @@ class UrdfLoadStart(Operator):
                             'default': 0,
                             'min': joint_min,
                             'max': joint_max,
+                            'update': float_callback
+                        }
+                    ),
+                    'joint1':
+                    (
+                        FloatProperty,
+                        {
+                            'name': 'j1',
+                            'description': 'desc',
+                            'default': 1,
+                            'min': joint_min,
+                            'max': joint_max,
+                            'update': float_callback
                         }
                     )
                 }
@@ -77,6 +100,7 @@ class UrdfLoadStart(Operator):
         bpy.utils.register_class(URDF_PT_JointControllerPanel)
 
         return {'FINISHED'}
+
 
 class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
     """Load a URDF into Blender."""
