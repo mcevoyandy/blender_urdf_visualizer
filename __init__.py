@@ -19,12 +19,10 @@ from bpy.props import PointerProperty
 from . load_urdf import (URDF_PT_UrdfLoadPanel,
                          UrdfLoadProperties,
                          UrdfLoadStart)
-from . joint_controller import (JointControllerProperties,
-                                URDF_PT_JointControllerPanel)
+from . joint_controller import URDF_PT_JointControllerPanel
 
 
 classes = (
-    JointControllerProperties,
     URDF_PT_UrdfLoadPanel,
     UrdfLoadProperties,
     UrdfLoadStart,
@@ -45,8 +43,18 @@ def unregister():
     except:
         pass
 
+    try:
+        bpy.utils.unregister_class(JointControllerProperties)
+    except:
+        pass
+
     del bpy.types.Scene.urdf_tool
-    del bpy.types.Scene.joint_tool
+
+    try:
+        del bpy.types.Scene.joint_tool
+    except:
+        pass
+
     print('Finished unregistering URDF addon')
 
 if __name__ == "__main__":

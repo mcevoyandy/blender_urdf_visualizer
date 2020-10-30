@@ -6,13 +6,21 @@ from bpy.props import (FloatProperty,
 from bpy.types import (Operator,
                        PropertyGroup)
 
-from . joint_controller import (JointControllerProperties,
-                                URDF_PT_JointControllerPanel)
+from . joint_controller import URDF_PT_JointControllerPanel
 
 class UrdfLoadProperties(PropertyGroup):
     urdf_package: StringProperty(
-        name = 'URDF package',
+        name = 'ROS pkg:',
         description = 'desc',
+        subtype = 'DIR_PATH',
+        default = '',
+        maxlen = 1024,
+    )
+
+    urdf_filename: StringProperty(
+        name = 'URDF:',
+        description = 'desc',
+        subtype = 'FILE_PATH',
         default = '',
         maxlen = 1024,
     )
@@ -25,24 +33,23 @@ class UrdfLoadStart(Operator):
         scene = context.scene
         urdf_tool = scene.urdf_tool
 
+        urdf_pkg_path = bpy.path.abspath(urdf_tool.urdf_package)
+        print('urdf_pkg_path = ', urdf_pkg_path)
+
+        urdf_filename = bpy.path.abspath(urdf_tool.urdf_filename)
+        print('urdf_filename = ', urdf_filename)
+
         print('execute LoadUrdf')
         test = LoadUrdf()
-        print('num_joints = ', URDF_PT_JointControllerPanel.num_joints)
-        URDF_PT_JointControllerPanel.num_joints = 1
-        print('num_joints = ', URDF_PT_JointControllerPanel.num_joints)
-        URDF_PT_JointControllerPanel.joint_min_limits[0] = -3.14159
-        print(JointControllerProperties)
-
-        bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
-        bpy.utils.register_class(URDF_PT_JointControllerPanel)
 
         joint_min = -3
         joint_max = 3
 
-        # Try to dynamically create the same class
-        JointProps = type(
+        # TODO: return this dictionary after parsing the URDF
+        # Dynamically create the same class
+        JointControllerProperties = type(
             # Class name
-            "JointProps",
+            "JointControllerProperties",
 
             # Base class
             (bpy.types.PropertyGroup, ),
@@ -65,9 +72,9 @@ class UrdfLoadStart(Operator):
                 }
             }
         )
-        print(JointProps)
-        bpy.utils.register_class(JointProps)
-        bpy.types.Scene.other_joint_tool = PointerProperty(type=JointProps)
+        bpy.utils.register_class(JointControllerProperties)
+        bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
+        bpy.utils.register_class(URDF_PT_JointControllerPanel)
 
         return {'FINISHED'}
 
@@ -80,12 +87,13 @@ class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text = 'layout label')
+        layout.label(text = 'Select URDF package & file:')
         scene = context.scene
         urdf_tool = scene.urdf_tool
 
-        layout.prop(urdf_tool, "urdf_package")
-        layout.operator("urdf.printout")
+        layout.prop(urdf_tool, 'urdf_package')
+        layout.prop(urdf_tool, 'urdf_filename')
+        layout.operator('urdf.printout')
         layout.separator()
 
 class LoadUrdf():
