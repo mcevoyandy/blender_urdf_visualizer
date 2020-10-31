@@ -6,6 +6,7 @@ from bpy.props import (FloatProperty,
 from bpy.types import (Operator,
                        PropertyGroup)
 import os
+import pprint
 import xml.etree.ElementTree as ET
 
 from . joint_controller import URDF_PT_JointControllerPanel
@@ -131,6 +132,7 @@ class LoadUrdf():
 
         # Initialize variables
         self.links = {}
+        self.joints = {}
 
         self.ParseUrdf()
 
@@ -146,32 +148,111 @@ class LoadUrdf():
         # First parse for all links with meshes and load mesh
         for child in urdf_root:
             if child.tag == 'link':
-                print('found link = ', child.get('name'))
+                print('INFO: found link = ', child.get('name'))
                 self.ProcessLink(child)
+            if child.tag == 'joint':
+                print('INFO: found joint = ', child.get('name'))
+                self.ProcessJoint(child)
 
+        pprint.pprint(self.links)
+        pprint.pprint(self.joints)
 
     def ProcessLink(self, link):
-        visual = link.find('visual')
+        # Create empty object to attach to joint object and hold stl
+        link_name = link.get('name')
+        new_link = bpy.data.objects.new(link_name, None)
+        bpy.context.scene.collection.objects.link(new_link)
+        self.links[link_name] = {
+            'mesh_path': None,
+            'xyz': [0, 0, 0],
+            'rpy': [0, 0, 0]
+        }
 
-        if visual == None:
-            new_link = bpy.data.objects.new(link.get('name'), None)
-            bpy.context.scene.collection.objects.link(new_link)
-            self.links[link.get('name')] = {'mesh_path': None}
+        visual = link.find('visual')
+        if None == visual:
+            print('INFO: Link has no visual info')
             return
 
-        geom = visual.find('geometry')
-        if geom == None:
-            print('WARN: ', link.get('name'), ' has no <geometry> tag.')
+        origin = visual.find('origin')
+        if None == origin:
+            print('INFO: origin not found, setting to Identity.')
+        else:
+            xyz = [float(i) for i in origin.get('xyz').split()]
+            rpy = [float(i) for i in origin.get('rpy').split()]
+            self.links[link_name]['xyz'] = xyz
+            self.links[link_name]['rpy'] = rpy
 
-        mesh_path = geom.find('mesh').get('filename')
+        geom = visual.find('geometry')
+        if None == geom:
+            print('WARN: ', link.get('name'), ' has no <geometry> tag.')
+            return
+
+        mesh = geom.find('mesh')
+        if None == mesh:
+            print('WARN: Primitive geometry not supported.')
+            return
+
+        mesh_path = mesh.get('filename')
+        if None == mesh_path:
+            print('WARN: No mesh found.')
+            return
+
         # Replace ROS convention and get abs path to mesh file
         if 'package://' in mesh_path:
             mesh_path = os.path.join(self.pkg_path, mesh_path.replace('package://', ''))
-        else:
-            print('ERROR: Expected ROS package syntax.')
-        self.links[link.get('name')] = {'mesh_path': mesh_path}
+            self.links[link_name]['mesh_path'] = mesh_path
+            return
 
+        print('ERROR: Expected ROS package syntax.')
+
+        # TODO: Load STLs once parents and xyz rpy has been found from joints.
         # Import STL and change name to match link name
         # bpy.ops.import_mesh.stl(filepath=mesh_path)
         # stl = bpy.context.selected_objects[0]
         # stl.name = link.get('name')
+
+    def ProcessJoint(self, joint):
+        joint_name = joint.get('name')
+        new_joint = bpy.data.objects.new(joint_name, None)
+        bpy.context.scene.collection.objects.link(new_joint)
+        self.joints[joint_name] = {
+            'type': 'fixed',
+            'parent': None,
+            'child': None,
+            'axis': [0, 0, 0],
+            'limit': [0, 0]
+        }
+
+        joint_type = joint.get('type')
+        if None == joint_type:
+            print('ERROR: joint has no type.')
+        else:
+            self.joints[joint_name]['type'] = joint_type
+
+        parent = joint.find('parent').get('link')
+        if None == parent:
+            print('ERROR: joint has no parent')
+        else:
+            self.joints[joint_name]['parent'] = parent
+
+        child = joint.find('child').get('link')
+        if None == child:
+            print('ERROR: joint has no child')
+        else:
+            self.joints[joint_name]['child'] = child
+
+        axis = joint.find('axis')
+        if None != axis:
+            self.joints[joint_name]['axis'] = [float(i) for i in axis.get('xyz').split()]
+
+        limit = joint.find('limit')
+        if None != limit:
+            lower = limit.get('lower')
+            upper = limit.get('upper')
+            if None == lower or None == upper:
+                print('ERROR: upper or lower limit not defined')
+            else:
+                self.joints[joint_name]['limit'] = [float(lower), float(upper)]
+
+
+        return
