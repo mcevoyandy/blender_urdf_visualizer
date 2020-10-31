@@ -5,6 +5,8 @@ from bpy.props import (FloatProperty,
                        StringProperty)
 from bpy.types import (Operator,
                        PropertyGroup)
+import os
+import xml.etree.ElementTree as ET
 
 from . joint_controller import URDF_PT_JointControllerPanel
 
@@ -49,55 +51,54 @@ class UrdfLoadStart(Operator):
         urdf_filename = bpy.path.abspath(urdf_tool.urdf_filename)
         print('urdf_filename = ', urdf_filename)
 
-        print('execute LoadUrdf')
-        test = LoadUrdf()
+        robot = LoadUrdf(urdf_pkg_path, urdf_filename)
 
         joint_min = -3
         joint_max = 3
 
         # TODO: return this dictionary after parsing the URDF
         # Dynamically create the same class
-        JointControllerProperties = type(
-            # Class name
-            "JointControllerProperties",
+        # JointControllerProperties = type(
+        #     # Class name
+        #     "JointControllerProperties",
 
-            # Base class
-            (bpy.types.PropertyGroup, ),
+        #     # Base class
+        #     (bpy.types.PropertyGroup, ),
 
-            # Dictionary of properties
-            {
-                '__annotations__':
-                {
-                    'joint0':
-                    (
-                        FloatProperty,
-                        {
-                            'name': 'j0',
-                            'description': 'desc',
-                            'default': 0,
-                            'min': joint_min,
-                            'max': joint_max,
-                            'update': float_callback
-                        }
-                    ),
-                    'joint1':
-                    (
-                        FloatProperty,
-                        {
-                            'name': 'j1',
-                            'description': 'desc',
-                            'default': 1,
-                            'min': joint_min,
-                            'max': joint_max,
-                            'update': float_callback
-                        }
-                    )
-                }
-            }
-        )
-        bpy.utils.register_class(JointControllerProperties)
-        bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
-        bpy.utils.register_class(URDF_PT_JointControllerPanel)
+        #     # Dictionary of properties
+        #     {
+        #         '__annotations__':
+        #         {
+        #             'joint0':
+        #             (
+        #                 FloatProperty,
+        #                 {
+        #                     'name': 'j0',
+        #                     'description': 'desc',
+        #                     'default': 0,
+        #                     'min': joint_min,
+        #                     'max': joint_max,
+        #                     'update': float_callback
+        #                 }
+        #             ),
+        #             'joint1':
+        #             (
+        #                 FloatProperty,
+        #                 {
+        #                     'name': 'j1',
+        #                     'description': 'desc',
+        #                     'default': 1,
+        #                     'min': joint_min,
+        #                     'max': joint_max,
+        #                     'update': float_callback
+        #                 }
+        #             )
+        #         }
+        #     }
+        # )
+        # bpy.utils.register_class(JointControllerProperties)
+        # bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
+        # bpy.utils.register_class(URDF_PT_JointControllerPanel)
 
         return {'FINISHED'}
 
@@ -122,9 +123,55 @@ class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
 
 class LoadUrdf():
 
-    def __init__(self):
-        print('__init__ LoadUrdf')
+    def __init__(self, pkg_path, urdf_filename):
+
+        # Remove last dir in pkg_path, conflicts with 'package://package_name' in mesh filename
+        self.pkg_path = os.path.split(pkg_path[0:-1])[0]
+        self.urdf_filename = urdf_filename
+
+        # Initialize variables
+        self.links = {}
+
         self.ParseUrdf()
 
     def ParseUrdf(self):
-        print('ParseUrdf')
+        # Open the URDF and get root node:
+        try:
+            tree = ET.parse(self.urdf_filename)
+        except ET.ParseError:
+            print('ERROR: Could not parse urdf file.')
+
+        urdf_root = tree.getroot()
+
+        # First parse for all links with meshes and load mesh
+        for child in urdf_root:
+            if child.tag == 'link':
+                print('found link = ', child.get('name'))
+                self.ProcessLink(child)
+
+        for key, value in self.links.items():
+            print(key, ' : ', value)
+
+        for obj in bpy.data.objects:
+            print(obj)
+
+
+    def ProcessLink(self, link):
+        for child in link:
+            if child.tag == 'visual':
+                geom = child.find('geometry')
+                if not geom:
+                    print('INFO: ', link.get('name'), ' has no <geometry> tag. Making empty.')
+                    break
+                mesh_path = geom.find('mesh').get('filename')
+                # Replace ROS convention and get abs path to mesh file
+                if 'package://' in mesh_path:
+                    mesh_path = os.path.join(self.pkg_path, mesh_path.replace('package://', ''))
+                else:
+                    print('ERROR: Expected ROS package syntax.')
+                self.links[link.get('name')] = {'mesh_path': mesh_path}
+
+                # Import STL and change name to match link name
+                # bpy.ops.import_mesh.stl(filepath=mesh_path)
+                # stl = bpy.context.selected_objects[0]
+                # stl.name = link.get('name')
