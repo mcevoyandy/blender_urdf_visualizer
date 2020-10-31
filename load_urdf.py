@@ -149,29 +149,29 @@ class LoadUrdf():
                 print('found link = ', child.get('name'))
                 self.ProcessLink(child)
 
-        for key, value in self.links.items():
-            print(key, ' : ', value)
-
-        for obj in bpy.data.objects:
-            print(obj)
-
 
     def ProcessLink(self, link):
-        for child in link:
-            if child.tag == 'visual':
-                geom = child.find('geometry')
-                if not geom:
-                    print('INFO: ', link.get('name'), ' has no <geometry> tag. Making empty.')
-                    break
-                mesh_path = geom.find('mesh').get('filename')
-                # Replace ROS convention and get abs path to mesh file
-                if 'package://' in mesh_path:
-                    mesh_path = os.path.join(self.pkg_path, mesh_path.replace('package://', ''))
-                else:
-                    print('ERROR: Expected ROS package syntax.')
-                self.links[link.get('name')] = {'mesh_path': mesh_path}
+        visual = link.find('visual')
 
-                # Import STL and change name to match link name
-                # bpy.ops.import_mesh.stl(filepath=mesh_path)
-                # stl = bpy.context.selected_objects[0]
-                # stl.name = link.get('name')
+        if visual == None:
+            new_link = bpy.data.objects.new(link.get('name'), None)
+            bpy.context.scene.collection.objects.link(new_link)
+            self.links[link.get('name')] = {'mesh_path': None}
+            return
+
+        geom = visual.find('geometry')
+        if geom == None:
+            print('WARN: ', link.get('name'), ' has no <geometry> tag.')
+
+        mesh_path = geom.find('mesh').get('filename')
+        # Replace ROS convention and get abs path to mesh file
+        if 'package://' in mesh_path:
+            mesh_path = os.path.join(self.pkg_path, mesh_path.replace('package://', ''))
+        else:
+            print('ERROR: Expected ROS package syntax.')
+        self.links[link.get('name')] = {'mesh_path': mesh_path}
+
+        # Import STL and change name to match link name
+        # bpy.ops.import_mesh.stl(filepath=mesh_path)
+        # stl = bpy.context.selected_objects[0]
+        # stl.name = link.get('name')
