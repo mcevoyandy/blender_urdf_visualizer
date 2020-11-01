@@ -1,4 +1,5 @@
 import bpy
+import mathutils
 
 from bpy.props import (FloatProperty,
                        PointerProperty,
@@ -157,6 +158,8 @@ class LoadUrdf():
         pprint.pprint(self.links)
         pprint.pprint(self.joints)
 
+        self.ProcessLists()
+
     def ProcessLink(self, link):
         # Create empty object to attach to joint object and hold stl
         link_name = link.get('name')
@@ -205,20 +208,16 @@ class LoadUrdf():
 
         print('ERROR: Expected ROS package syntax.')
 
-        # TODO: Load STLs once parents and xyz rpy has been found from joints.
-        # Import STL and change name to match link name
-        # bpy.ops.import_mesh.stl(filepath=mesh_path)
-        # stl = bpy.context.selected_objects[0]
-        # stl.name = link.get('name')
 
     def ProcessJoint(self, joint):
         joint_name = joint.get('name')
-        new_joint = bpy.data.objects.new(joint_name, None)
-        bpy.context.scene.collection.objects.link(new_joint)
+
         self.joints[joint_name] = {
             'type': 'fixed',
             'parent': None,
             'child': None,
+            'xyz': None,
+            'rpy': None,
             'axis': [0, 0, 0],
             'limit': [0, 0]
         }
@@ -241,6 +240,15 @@ class LoadUrdf():
         else:
             self.joints[joint_name]['child'] = child
 
+        origin = joint.find('origin')
+        xyz = [0, 0, 0]
+        rpy = [0, 0, 0]
+        if None != origin:
+            xyz = [float(i) for i in origin.get('xyz').split()]
+            rpy = [float(i) for i in origin.get('rpy').split()]
+        self.joints[joint_name]['xyz'] = xyz
+        self.joints[joint_name]['rpy'] = rpy
+
         axis = joint.find('axis')
         if None != axis:
             self.joints[joint_name]['axis'] = [float(i) for i in axis.get('xyz').split()]
@@ -254,5 +262,24 @@ class LoadUrdf():
             else:
                 self.joints[joint_name]['limit'] = [float(lower), float(upper)]
 
-
         return
+
+    def ProcessLists(self):
+        for joint_name, joint_props in self.joints.items():
+
+            parent_obj = bpy.context.scene.objects[joint_props['parent']]
+            child_obj = bpy.context.scene.objects[joint_props['child']]
+
+            child_obj.parent = parent_obj
+            child_obj.location = joint_props['xyz']
+            child_obj.rotation_euler = joint_props['rpy']
+
+        for link_name, link_props in self.links.items():
+            # Import STL and change name to match link name
+            link_obj = bpy.context.scene.objects[link_name]
+
+            if None != link_props['mesh_path']:
+                bpy.ops.import_mesh.stl(filepath=link_props['mesh_path'])
+                stl_obj = bpy.context.selected_objects[0]
+                stl_obj.parent = link_obj
+                # TODO: add visual offset if any
