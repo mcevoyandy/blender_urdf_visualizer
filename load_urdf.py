@@ -31,6 +31,8 @@ class UrdfLoadProperties(PropertyGroup):
 
 def float_callback(self, context):
     print('\nfloat callback')
+
+    # TODO: move the objects in self.blender_links according to the float value
     jt = context.scene.joint_tool
     print('jt.items  = ', jt.items())
     print('jt.keys   = ', jt.keys())
@@ -55,52 +57,21 @@ class UrdfLoadStart(Operator):
 
         robot = LoadUrdf(urdf_pkg_path, urdf_filename)
 
-        joint_min = -3
-        joint_max = 3
-
-        # TODO: return this dictionary after parsing the URDF
         # Dynamically create the same class
-        # JointControllerProperties = type(
-        #     # Class name
-        #     "JointControllerProperties",
+        JointControllerProperties = type(
+            # Class name
+            "JointControllerProperties",
 
-        #     # Base class
-        #     (bpy.types.PropertyGroup, ),
+            # Base class
+            (bpy.types.PropertyGroup, ),
 
-        #     # Dictionary of properties
-        #     {
-        #         '__annotations__':
-        #         {
-        #             'joint0':
-        #             (
-        #                 FloatProperty,
-        #                 {
-        #                     'name': 'j0',
-        #                     'description': 'desc',
-        #                     'default': 0,
-        #                     'min': joint_min,
-        #                     'max': joint_max,
-        #                     'update': float_callback
-        #                 }
-        #             ),
-        #             'joint1':
-        #             (
-        #                 FloatProperty,
-        #                 {
-        #                     'name': 'j1',
-        #                     'description': 'desc',
-        #                     'default': 1,
-        #                     'min': joint_min,
-        #                     'max': joint_max,
-        #                     'update': float_callback
-        #                 }
-        #             )
-        #         }
-        #     }
-        # )
-        # bpy.utils.register_class(JointControllerProperties)
-        # bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
-        # bpy.utils.register_class(URDF_PT_JointControllerPanel)
+            # Annotations
+            robot.annotations
+        )
+        URDF_PT_JointControllerPanel.set_joint_names(robot.joint_names)
+        bpy.utils.register_class(JointControllerProperties)
+        bpy.types.Scene.joint_tool = PointerProperty(type=JointControllerProperties)
+        bpy.utils.register_class(URDF_PT_JointControllerPanel)
 
         return {'FINISHED'}
 
@@ -134,8 +105,11 @@ class LoadUrdf():
         # Initialize variables
         self.links = {}
         self.joints = {}
-
+        self.annotations = {}
+        self.joint_names = []
+        self.blender_links = {}
         self.ParseUrdf()
+        pprint.pprint(self.blender_links)
 
     def ParseUrdf(self):
         # Open the URDF and get root node:
@@ -158,7 +132,38 @@ class LoadUrdf():
         pprint.pprint(self.links)
         pprint.pprint(self.joints)
 
+        self.GenerateJointAnnotations()
+        pprint.pprint(self.annotations)
+
         self.ProcessLists()
+
+    def GenerateJointAnnotations(self):
+        # Generate annotations for dynamically creating the joint sliders.
+        # Form should be (dictionary of tuples):
+        # annotations: {
+        #   'joint0': (
+        #        FloatProperty, {
+        #            'name': 'j0',
+        #            'description': 'desc',
+        #            'default': 0,
+        #            'min': joint_min,
+        #            'max': joint_max,
+        #            'update': float_callback}),
+        #    <repeated for each joint>
+        self.annotations = {}
+        for joint in self.joints:
+            self.joint_names.append(joint)
+            self.annotations[joint] = (FloatProperty,
+            {
+                'name': joint,
+                'description': joint,
+                'default': 0,
+                'min': self.joints[joint]['limit'][0],
+                'max': self.joints[joint]['limit'][1],
+                'update': float_callback
+            })
+        return
+
 
     def ProcessLink(self, link):
         # Create empty object to attach to joint object and hold stl
@@ -261,14 +266,15 @@ class LoadUrdf():
                 print('ERROR: upper or lower limit not defined')
             else:
                 self.joints[joint_name]['limit'] = [float(lower), float(upper)]
-
         return
 
     def ProcessLists(self):
         for joint_name, joint_props in self.joints.items():
 
+
             parent_obj = bpy.context.scene.objects[joint_props['parent']]
             child_obj = bpy.context.scene.objects[joint_props['child']]
+            self.blender_links[joint_name] = child_obj
 
             child_obj.parent = parent_obj
             child_obj.location = joint_props['xyz']

@@ -1,6 +1,6 @@
 # Blender URDF Viewer
 
-Version: 2.90.1
+Blender v2.90.1
 
 ## Development Setup in Linux
 
@@ -18,4 +18,6 @@ Enable the Add-on in Blender:
 1. Select `Add-ons > Testing`
 1. Enable `Object: URDF`
 
-**NOTE:** During development, you may need to disable the Add-on and re-enable it for it to load properly.
+**NOTES:**
+1. During development, you may need to disable the Add-on and re-enable it for it to load properly.
+1. To see all of the output from the console, launch blender from the command line.
