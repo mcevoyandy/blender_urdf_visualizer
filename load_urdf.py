@@ -153,6 +153,10 @@ class LoadUrdf():
         #    <repeated for each joint>
         self.annotations = {}
         for joint in self.joints:
+            if self.joints[joint]['type'] == 'fixed':
+                print('Fixed joint. Skipping ', joint)
+                continue
+
             self.joint_names.append(joint)
             self.annotations[joint] = (FloatProperty,
             {
@@ -273,7 +277,9 @@ class LoadUrdf():
         if None != limit:
             lower = limit.get('lower')
             upper = limit.get('upper')
-            if None == lower or None == upper:
+            if joint_type == 'continuous':
+                self.joints[joint_name]['limit'] = [-6.28319, 6.28319]
+            elif None == lower or None == upper:
                 print('ERROR: upper or lower limit not defined')
             else:
                 self.joints[joint_name]['limit'] = [float(lower), float(upper)]
