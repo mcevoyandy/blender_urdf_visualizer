@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 
 from . joint_controller import URDF_PT_JointControllerPanel
 
+blender_links = {}
+
 class UrdfLoadProperties(PropertyGroup):
     urdf_package: StringProperty(
         name = 'ROS pkg:',
@@ -30,15 +32,14 @@ class UrdfLoadProperties(PropertyGroup):
     )
 
 def float_callback(self, context):
-    print('\nfloat callback')
-
-    # TODO: move the objects in self.blender_links according to the float value
+    # Callback for sliders. Find each object in the links dictionary and set its rotation.
     jt = context.scene.joint_tool
-    print('jt.items  = ', jt.items())
-    print('jt.keys   = ', jt.keys())
-    print('jt.values = ', jt.values())
-    print('jt.__annotations__.keys()   = ', jt.__annotations__.keys())
-    print('jt.__annotations__.values() = ', jt.__annotations__.values())
+    for item in jt.items():
+        name = item[0]
+        value = item[1]
+        # TODO: Check rotations of links, for some, proper axis of rotation is Y as I've brought it
+        # into blender...
+        blender_links[name].rotation_euler[2] = value
 
 
 class UrdfLoadStart(Operator):
@@ -107,9 +108,8 @@ class LoadUrdf():
         self.joints = {}
         self.annotations = {}
         self.joint_names = []
-        self.blender_links = {}
         self.ParseUrdf()
-        pprint.pprint(self.blender_links)
+        pprint.pprint(blender_links)
 
     def ParseUrdf(self):
         # Open the URDF and get root node:
@@ -136,6 +136,7 @@ class LoadUrdf():
         pprint.pprint(self.annotations)
 
         self.ProcessLists()
+        self.HideAxes()
 
     def GenerateJointAnnotations(self):
         # Generate annotations for dynamically creating the joint sliders.
@@ -166,9 +167,10 @@ class LoadUrdf():
 
 
     def ProcessLink(self, link):
-        # Create empty object to attach to joint object and hold stl
+        # Create empty link object to hold stl
         link_name = link.get('name')
         new_link = bpy.data.objects.new(link_name, None)
+        new_link.empty_display_type = 'ARROWS'
         bpy.context.scene.collection.objects.link(new_link)
         self.links[link_name] = {
             'mesh_path': None,
@@ -209,6 +211,10 @@ class LoadUrdf():
         if 'package://' in mesh_path:
             mesh_path = os.path.join(self.pkg_path, mesh_path.replace('package://', ''))
             self.links[link_name]['mesh_path'] = mesh_path
+            # Import STL
+            bpy.ops.import_mesh.stl(filepath=mesh_path)
+            stl_obj = bpy.context.selected_objects[0]
+            stl_obj.parent = new_link
             return
 
         print('ERROR: Expected ROS package syntax.')
@@ -216,6 +222,11 @@ class LoadUrdf():
 
     def ProcessJoint(self, joint):
         joint_name = joint.get('name')
+
+        # Create empty joint object
+        new_joint = bpy.data.objects.new(joint_name, None)
+        new_joint.empty_display_type = 'ARROWS'
+        bpy.context.scene.collection.objects.link(new_joint)
 
         self.joints[joint_name] = {
             'type': 'fixed',
@@ -268,24 +279,27 @@ class LoadUrdf():
                 self.joints[joint_name]['limit'] = [float(lower), float(upper)]
         return
 
+
+    def HideAxes(self):
+        for joint_name in self.joints:
+            bpy.context.scene.objects[joint_name].hide_set(True)
+
+        for link_name in self.links:
+            bpy.context.scene.objects[link_name].hide_set(True)
+
+
     def ProcessLists(self):
         for joint_name, joint_props in self.joints.items():
+            # Joint object connects parent link to child link
+            parent_link = bpy.context.scene.objects[joint_props['parent']]
+            child_link = bpy.context.scene.objects[joint_props['child']]
+            joint = bpy.context.scene.objects[joint_name]
 
+            joint.parent = parent_link
+            joint.location = joint_props['xyz']
+            joint.rotation_euler = joint_props['rpy']
 
-            parent_obj = bpy.context.scene.objects[joint_props['parent']]
-            child_obj = bpy.context.scene.objects[joint_props['child']]
-            self.blender_links[joint_name] = child_obj
+            child_link.parent = joint
 
-            child_obj.parent = parent_obj
-            child_obj.location = joint_props['xyz']
-            child_obj.rotation_euler = joint_props['rpy']
-
-        for link_name, link_props in self.links.items():
-            # Import STL and change name to match link name
-            link_obj = bpy.context.scene.objects[link_name]
-
-            if None != link_props['mesh_path']:
-                bpy.ops.import_mesh.stl(filepath=link_props['mesh_path'])
-                stl_obj = bpy.context.selected_objects[0]
-                stl_obj.parent = link_obj
-                # TODO: add visual offset if any
+            blender_links[joint_name] = child_link
+        return
