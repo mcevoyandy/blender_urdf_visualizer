@@ -302,8 +302,10 @@ class LoadUrdf():
         xyz = [0, 0, 0]
         rpy = [0, 0, 0]
         if None != origin:
-            xyz = [float(i) for i in origin.get('xyz').split()]
-            rpy = [float(i) for i in origin.get('rpy').split()]
+            if None != origin.get('xyz'):
+                xyz = [float(i) for i in origin.get('xyz').split()]
+            if None != origin.get('rpy'):
+                rpy = [float(i) for i in origin.get('rpy').split()]
         blender_joints[joint_name]['xyz'] = xyz
         blender_joints[joint_name]['rpy'] = rpy
 
