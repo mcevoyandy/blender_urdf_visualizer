@@ -1,5 +1,6 @@
 import bpy
 import mathutils
+from math import pi
 
 from bpy.props import (FloatProperty,
                        PointerProperty,
@@ -13,6 +14,7 @@ import xml.etree.ElementTree as ET
 from . joint_controller import URDF_PT_JointControllerPanel
 
 blender_links = {}
+blender_joints = {}
 
 class UrdfLoadProperties(PropertyGroup):
     urdf_package: StringProperty(
@@ -37,9 +39,42 @@ def float_callback(self, context):
     for item in jt.items():
         name = item[0]
         value = item[1]
-        # TODO: Check rotations of links, for some, proper axis of rotation is Y as I've brought it
-        # into blender...
-        blender_links[name].rotation_euler[2] = value
+        axis = blender_joints[name]['axis']
+
+        # TODO: clean up function
+        if blender_joints[name]['type'] == 'prismatic':
+            if ([1.0, 0.0, 0.0] == axis):
+                blender_links[name].delta_location = [value, 0, 0]
+            elif ([-1.0, 0.0, 0.0] == axis):
+                blender_links[name].delta_location = [-value, 0, 0]
+            elif ([0.0, 1.0, 0.0] == axis):
+                blender_links[name].delta_location = [0, value, 0]
+            elif ([0.0, -1.0, 0.0] == axis):
+                blender_links[name].delta_location = [0, -value, 0]
+            elif ([0.0, 0.0, 1.0] == axis):
+                blender_links[name].delta_location = [0, 0, value]
+            elif ([0.0, 0.0, -1.0] == axis):
+                blender_links[name].delta_location = [0 , 0, -value]
+            else:
+                print('WARN: Only primary joint axes supported.')
+        elif (blender_joints[name]['type'] == 'revolute' or
+            blender_joints[name]['type'] == 'continuous'):
+            if ([1.0, 0.0, 0.0] == axis):
+                blender_links[name].rotation_euler[0] = value
+            elif ([-1.0, 0.0, 0.0] == axis):
+                blender_links[name].rotation_euler[0] = -value
+            elif ([0.0, 1.0, 0.0] == axis):
+                blender_links[name].rotation_euler[1] = value
+            elif ([0.0, -1.0, 0.0] == axis):
+                blender_links[name].rotation_euler[1] = -value
+            elif ([0.0, 0.0, 1.0] == axis):
+                blender_links[name].rotation_euler[2] = value
+            elif ([0.0, 0.0, -1.0] == axis):
+                blender_links[name].rotation_euler[2] = -value
+            else:
+                print('WARN: Only primary joint axes supported.')
+        else:
+            print('Joint type not supported: ', blender_joints[name]['type'])
 
 
 class UrdfLoadStart(Operator):
@@ -51,10 +86,10 @@ class UrdfLoadStart(Operator):
         urdf_tool = scene.urdf_tool
 
         urdf_pkg_path = bpy.path.abspath(urdf_tool.urdf_package)
-        print('urdf_pkg_path = ', urdf_pkg_path)
+        print('INFO: urdf_pkg_path = ', urdf_pkg_path)
 
         urdf_filename = bpy.path.abspath(urdf_tool.urdf_filename)
-        print('urdf_filename = ', urdf_filename)
+        print('INFO: urdf_filename = ', urdf_filename)
 
         robot = LoadUrdf(urdf_pkg_path, urdf_filename)
 
@@ -105,7 +140,6 @@ class LoadUrdf():
 
         # Initialize variables
         self.links = {}
-        self.joints = {}
         self.annotations = {}
         self.joint_names = []
         self.ParseUrdf()
@@ -129,10 +163,14 @@ class LoadUrdf():
                 print('INFO: found joint = ', child.get('name'))
                 self.ProcessJoint(child)
 
+        print('\n\nLINKS\n=====\n')
         pprint.pprint(self.links)
-        pprint.pprint(self.joints)
+
+        print('\n\nJOINTS\n======\n')
+        pprint.pprint(blender_joints)
 
         self.GenerateJointAnnotations()
+        print('\n\nANNOTATIONS\n===========\n')
         pprint.pprint(self.annotations)
 
         self.ProcessLists()
@@ -152,9 +190,9 @@ class LoadUrdf():
         #            'update': float_callback}),
         #    <repeated for each joint>
         self.annotations = {}
-        for joint in self.joints:
-            if self.joints[joint]['type'] == 'fixed':
-                print('Fixed joint. Skipping ', joint)
+        for joint in blender_joints:
+            if blender_joints[joint]['type'] == 'fixed':
+                print('INFO: Fixed joint. Skipping ', joint)
                 continue
 
             self.joint_names.append(joint)
@@ -163,8 +201,8 @@ class LoadUrdf():
                 'name': joint,
                 'description': joint,
                 'default': 0,
-                'min': self.joints[joint]['limit'][0],
-                'max': self.joints[joint]['limit'][1],
+                'min': blender_joints[joint]['limit'][0],
+                'max': blender_joints[joint]['limit'][1],
                 'update': float_callback
             })
         return
@@ -232,33 +270,33 @@ class LoadUrdf():
         new_joint.empty_display_type = 'ARROWS'
         bpy.context.scene.collection.objects.link(new_joint)
 
-        self.joints[joint_name] = {
+        blender_joints[joint_name] = {
             'type': 'fixed',
             'parent': None,
             'child': None,
             'xyz': None,
             'rpy': None,
             'axis': [0, 0, 0],
-            'limit': [0, 0]
+            'limit': [-2 * pi, 2 * pi]
         }
 
         joint_type = joint.get('type')
         if None == joint_type:
             print('ERROR: joint has no type.')
         else:
-            self.joints[joint_name]['type'] = joint_type
+            blender_joints[joint_name]['type'] = joint_type
 
         parent = joint.find('parent').get('link')
         if None == parent:
             print('ERROR: joint has no parent')
         else:
-            self.joints[joint_name]['parent'] = parent
+            blender_joints[joint_name]['parent'] = parent
 
         child = joint.find('child').get('link')
         if None == child:
             print('ERROR: joint has no child')
         else:
-            self.joints[joint_name]['child'] = child
+            blender_joints[joint_name]['child'] = child
 
         origin = joint.find('origin')
         xyz = [0, 0, 0]
@@ -266,28 +304,28 @@ class LoadUrdf():
         if None != origin:
             xyz = [float(i) for i in origin.get('xyz').split()]
             rpy = [float(i) for i in origin.get('rpy').split()]
-        self.joints[joint_name]['xyz'] = xyz
-        self.joints[joint_name]['rpy'] = rpy
+        blender_joints[joint_name]['xyz'] = xyz
+        blender_joints[joint_name]['rpy'] = rpy
 
         axis = joint.find('axis')
         if None != axis:
-            self.joints[joint_name]['axis'] = [float(i) for i in axis.get('xyz').split()]
+            blender_joints[joint_name]['axis'] = [float(i) for i in axis.get('xyz').split()]
 
         limit = joint.find('limit')
         if None != limit:
             lower = limit.get('lower')
             upper = limit.get('upper')
             if joint_type == 'continuous':
-                self.joints[joint_name]['limit'] = [-6.28319, 6.28319]
+                blender_joints[joint_name]['limit'] = [-6.28319, 6.28319]
             elif None == lower or None == upper:
                 print('ERROR: upper or lower limit not defined')
             else:
-                self.joints[joint_name]['limit'] = [float(lower), float(upper)]
+                blender_joints[joint_name]['limit'] = [float(lower), float(upper)]
         return
 
 
     def HideAxes(self):
-        for joint_name in self.joints:
+        for joint_name in blender_joints:
             bpy.context.scene.objects[joint_name].hide_set(True)
 
         for link_name in self.links:
@@ -295,7 +333,7 @@ class LoadUrdf():
 
 
     def ProcessLists(self):
-        for joint_name, joint_props in self.joints.items():
+        for joint_name, joint_props in blender_joints.items():
             # Joint object connects parent link to child link
             parent_link = bpy.context.scene.objects[joint_props['parent']]
             child_link = bpy.context.scene.objects[joint_props['child']]
