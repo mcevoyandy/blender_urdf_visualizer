@@ -1,10 +1,16 @@
 # Blender URDF Viewer
 
 v0.1.0
+Blender v2.90.1
+
+Often when I'm generating URDFs from SolidWorks I need a visualizer where I can move joints and links around and also do things like decimate the meshes so they are a reasonable file size. This is a collection of those Blender scripts that I've found helpful while creating and working with URDF packages.
+
+![GIF of Blender URDF visualization](./images/yumi.gif)
 
 ## Limitations
 
 - Only Fixed, Revolute, Continuous, and Prismatic joint types.
+- Doesn't handle primitives. Assumes you're working with generated mesh files.
 - Cannot reload or load a new URDF.
 - Cannot save configuration.
 - Cannot load URDFs that have models in different packages.
