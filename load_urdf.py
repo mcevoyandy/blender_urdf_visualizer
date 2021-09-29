@@ -100,9 +100,7 @@ class UrdfLoadStart(Operator):
 
             # Base class
             (bpy.types.PropertyGroup, ),
-
-            # Annotations
-            robot.annotations
+                {"__annotations__": robot.annotations},
         )
         URDF_PT_JointControllerPanel.set_joint_names(robot.joint_names)
         bpy.utils.register_class(JointControllerProperties)
@@ -196,15 +194,15 @@ class LoadUrdf():
                 continue
 
             self.joint_names.append(joint)
-            self.annotations[joint] = (FloatProperty,
-            {
-                'name': joint,
-                'description': joint,
-                'default': 0,
-                'min': blender_joints[joint]['limit'][0],
-                'max': blender_joints[joint]['limit'][1],
-                'update': float_callback
-            })
+            self.annotations[joint] = FloatProperty(
+                name = joint,
+                description = joint,
+                default = 0,
+                min = blender_joints[joint]['limit'][0],
+                max = blender_joints[joint]['limit'][1],
+                update = float_callback
+            )
+
         return
 
 
