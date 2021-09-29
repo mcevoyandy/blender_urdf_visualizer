@@ -176,17 +176,7 @@ class LoadUrdf():
 
     def GenerateJointAnnotations(self):
         # Generate annotations for dynamically creating the joint sliders.
-        # Form should be (dictionary of tuples):
-        # annotations: {
-        #   'joint0': (
-        #        FloatProperty, {
-        #            'name': 'j0',
-        #            'description': 'desc',
-        #            'default': 0,
-        #            'min': joint_min,
-        #            'max': joint_max,
-        #            'update': float_callback}),
-        #    <repeated for each joint>
+        # Form should be {joint: FloatProperty(**kwargs)}:
         self.annotations = {}
         for joint in blender_joints:
             if blender_joints[joint]['type'] == 'fixed':
