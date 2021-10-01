@@ -1,6 +1,6 @@
 # Blender URDF Viewer
 
-v0.1.1
+v0.1.2
 
 Tested with Blender v2.90.1, v2.93.4
 
@@ -12,13 +12,12 @@ Often when I'm generating URDFs from SolidWorks I need a visualizer where I can 
 
 - Only Fixed, Revolute, Continuous, and Prismatic joint types.
 - Doesn't handle primitives. Assumes you're working with generated mesh files.
-- Cannot reload or load a new URDF.
 - Cannot save configuration.
 - Cannot load URDFs that have models in different packages.
 
 **NOTES:**
 1. During development, you may need to disable the Add-on and re-enable it for it to load properly.
-1. To see all of the output from the console, launch blender from the command line.
+2. To see all of the output from the console, launch blender from the command line.
 
 ## Blender Addon Setup
 

@@ -201,9 +201,11 @@ class LoadUrdf():
             if LoadUrdf.use_degrees:
                 joint_min = blender_joints[joint]['limit'][0] * 180.0 / pi
                 joint_max = blender_joints[joint]['limit'][1] * 180.0 / pi
+                step_size = 100
             else:
                 joint_min = blender_joints[joint]['limit'][0]
                 joint_max = blender_joints[joint]['limit'][1]
+                step_size = 1
 
             self.joint_names.append(joint)
             self.annotations[joint] = FloatProperty(
@@ -212,6 +214,7 @@ class LoadUrdf():
                 default = 0,
                 min = joint_min,
                 max = joint_max,
+                step = step_size,
                 update = float_callback
             )
 
