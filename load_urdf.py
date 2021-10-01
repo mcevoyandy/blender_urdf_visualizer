@@ -47,6 +47,7 @@ def float_callback(self, context):
     urdf_tool = scene.urdf_tool
     print(f'In callback degrees = {urdf_tool.urdf_degrees}')
     for item in jt.items():
+        print(item)
         name = item[0]
         value = item[1]
         axis = blender_joints[name]['axis']
@@ -101,7 +102,7 @@ class UrdfLoadStart(Operator):
         urdf_filename = bpy.path.abspath(urdf_tool.urdf_filename)
         print('INFO: urdf_filename = ', urdf_filename)
 
-        robot = LoadUrdf(urdf_pkg_path, urdf_filename, urdf_tool.urdf_degrees)
+        robot = LoadUrdf(urdf_pkg_path, urdf_filename)
 
         # Dynamically create the same class
         JointControllerProperties = type(
@@ -141,7 +142,7 @@ class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
 
 class LoadUrdf():
 
-    def __init__(self, pkg_path, urdf_filename, use_degrees):
+    def __init__(self, pkg_path, urdf_filename):
 
         # Remove last dir in pkg_path, conflicts with 'package://package_name' in mesh filename
         self.pkg_path = os.path.split(pkg_path[0:-1])[0]
@@ -151,7 +152,6 @@ class LoadUrdf():
         self.links = {}
         self.annotations = {}
         self.joint_names = []
-        self.use_degrees = use_degrees
         self.ParseUrdf()
         pprint.pprint(blender_links)
 
@@ -187,7 +187,6 @@ class LoadUrdf():
         self.HideAxes()
 
     def GenerateJointAnnotations(self):
-        print(f'Use degrees = {self.use_degrees}')
         # Generate annotations for dynamically creating the joint sliders.
         # Form should be {joint: FloatProperty(**kwargs)}:
         self.annotations = {}
