@@ -1,5 +1,4 @@
 import bpy
-import mathutils
 from math import pi
 
 from bpy.props import (BoolProperty,
@@ -34,22 +33,23 @@ class UrdfLoadProperties(PropertyGroup):
         maxlen = 1024,
     )
 
-    urdf_degrees: BoolProperty(
-        name = 'Use degrees?',
-        description = 'Should the joint controller display radians (default) or degrees?',
+    urdf_use_degrees: BoolProperty(
+        name = 'Use Degrees?',
+        description = 'Should the joint controller use degrees?',
         default = False
     )
 
 def float_callback(self, context):
     # Callback for sliders. Find each object in the links dictionary and set its rotation.
     jt = context.scene.joint_tool
-    scene = context.scene
-    urdf_tool = scene.urdf_tool
-    print(f'In callback degrees = {urdf_tool.urdf_degrees}')
+
     for item in jt.items():
-        print(item)
         name = item[0]
         value = item[1]
+
+        if LoadUrdf.use_degrees:
+            value *= pi / 180.0
+
         axis = blender_joints[name]['axis']
 
         # TODO: clean up function
@@ -102,7 +102,7 @@ class UrdfLoadStart(Operator):
         urdf_filename = bpy.path.abspath(urdf_tool.urdf_filename)
         print('INFO: urdf_filename = ', urdf_filename)
 
-        robot = LoadUrdf(urdf_pkg_path, urdf_filename)
+        robot = LoadUrdf(urdf_pkg_path, urdf_filename, urdf_tool.urdf_use_degrees)
 
         # Dynamically create the same class
         JointControllerProperties = type(
@@ -136,13 +136,15 @@ class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
 
         layout.prop(urdf_tool, 'urdf_package')
         layout.prop(urdf_tool, 'urdf_filename')
-        layout.prop(urdf_tool, 'urdf_degrees')
+        layout.prop(urdf_tool, 'urdf_use_degrees')
         layout.operator('urdf.printout')
         layout.separator()
 
 class LoadUrdf():
 
-    def __init__(self, pkg_path, urdf_filename):
+    use_degrees = False
+
+    def __init__(self, pkg_path, urdf_filename, degrees):
 
         # Remove last dir in pkg_path, conflicts with 'package://package_name' in mesh filename
         self.pkg_path = os.path.split(pkg_path[0:-1])[0]
@@ -152,6 +154,7 @@ class LoadUrdf():
         self.links = {}
         self.annotations = {}
         self.joint_names = []
+        LoadUrdf.use_degrees = degrees
         self.ParseUrdf()
         pprint.pprint(blender_links)
 
@@ -195,13 +198,20 @@ class LoadUrdf():
                 print('INFO: Fixed joint. Skipping ', joint)
                 continue
 
+            if LoadUrdf.use_degrees:
+                joint_min = blender_joints[joint]['limit'][0] * 180.0 / pi
+                joint_max = blender_joints[joint]['limit'][1] * 180.0 / pi
+            else:
+                joint_min = blender_joints[joint]['limit'][0]
+                joint_max = blender_joints[joint]['limit'][1]
+
             self.joint_names.append(joint)
             self.annotations[joint] = FloatProperty(
                 name = joint,
                 description = joint,
                 default = 0,
-                min = blender_joints[joint]['limit'][0],
-                max = blender_joints[joint]['limit'][1],
+                min = joint_min,
+                max = joint_max,
                 update = float_callback
             )
 
