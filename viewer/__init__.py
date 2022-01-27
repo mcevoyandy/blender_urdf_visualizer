@@ -1,13 +1,13 @@
 bl_info = {
-    "name": "URDF",
+    "name": "UrdfViewer",
     "description": "Visualize a URDF and its meshes",
     "author": "Andy McEvoy",
     "version": (0, 1, 0),
     "blender": (2, 80, 0),
     "location": "View3D > Add ",
     "warning": "Developmental",
-    "wiki_url": "https://www.google.com",
-    "tracker_url": "https://www.google.com",
+    "wiki_url": "https://github.com/mcevoyandy/blender_urdf_visualizer",
+    "tracker_url": "https://github.com/mcevoyandy/blender_urdf_visualizer/issues",
     "category": "Object",
     "support": "TESTING"
 }
@@ -32,7 +32,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.urdf_tool = PointerProperty(type=UrdfLoadProperties)
-    print('Finished registering URDF addon')
+    print('Finished registering UrdfViewer addon')
 
 def unregister():
     for cls in classes:
@@ -55,7 +55,7 @@ def unregister():
     except:
         pass
 
-    print('Finished unregistering URDF addon')
+    print('Finished unregistering UrdfViewer addon')
 
 if __name__ == "__main__":
     register()
