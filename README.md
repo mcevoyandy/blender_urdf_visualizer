@@ -26,8 +26,8 @@ Often when I'm generating URDFs from SolidWorks I need a visualizer where I can 
 Create a symlink to this repository in your local config:
 
 ```
-cd ~/.config/blender/2.90/scripts/addons
-ln -s ~/git/blender_urdf_visualizer blender_urdf_visualizer
+cd ~/.config/blender/2.93/scripts/addons
+ln -s ~/git/blender_urdf_visualizer/viewer blender_urdf_visualizer
 ```
 
 ### For Windows
