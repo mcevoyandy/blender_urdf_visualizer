@@ -1,3 +1,8 @@
+# January 27, 2022
+v0.1.3
+- Added add-on to batch decimate meshes
+- Changed file structure to support multiple add-ons
+
 # October 1, 2021
 v0.1.2
 - Added option to load URDF panel that allows JointController to be in degrees.

@@ -19,7 +19,7 @@ blender_joints = {}
 class UrdfLoadProperties(PropertyGroup):
     urdf_package: StringProperty(
         name = 'ROS pkg:',
-        description = 'desc',
+        description = 'Path to your description package.',
         subtype = 'DIR_PATH',
         default = '',
         maxlen = 1024,
@@ -27,7 +27,7 @@ class UrdfLoadProperties(PropertyGroup):
 
     urdf_filename: StringProperty(
         name = 'URDF:',
-        description = 'desc',
+        description = 'Path to your URDF file.',
         subtype = 'FILE_PATH',
         default = '',
         maxlen = 1024,
@@ -123,7 +123,7 @@ class UrdfLoadStart(Operator):
 
 class URDF_PT_UrdfLoadPanel(bpy.types.Panel):
     """Load a URDF into Blender."""
-    bl_label = 'URDF label'
+    bl_label = 'URDF Viewer'
     bl_category = 'Load URDF'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
