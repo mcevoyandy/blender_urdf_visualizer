@@ -9,7 +9,7 @@ from os import listdir, path
 from pathlib import Path
 import shutil
 
-HEADER_SIZE = 84  # Binary STLs have (up to) an 80 byte header
+HEADER_SIZE = 84  # Binary STLs have an 80 byte header and 4 byte triangle count
 TRIANGLE_SIZE = 50  # Binary STLs store each triangle using 50 bytes
 
 class UrdfDecimatorProperties(PropertyGroup):

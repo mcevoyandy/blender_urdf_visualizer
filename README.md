@@ -26,6 +26,8 @@ This does not produce any visual results, but allows you to select a directory o
 
 Backups of all files are created (using a `*.1`, `*.2`, etc) modifier to the filename.
 
+![GIF of mesh decimation add-on](./images/mesh_decimation_example.gif)
+
 ### Current Limitations
 
  - Does not ask if you want to apply the decimation, all models above the size limit are decimated.
@@ -63,3 +65,5 @@ To enable the Add-on in Blender:
 **NOTES:**
 1. During development, you may need to disable the Add-on and re-enable it for it to load properly.
 2. To see all of the output from the console, launch blender from the command line.
+
+![GIF of how to enable the add-ons](./images/how_to_enable_addons.gif)
