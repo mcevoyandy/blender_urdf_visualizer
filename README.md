@@ -50,8 +50,7 @@ ln -s ~/git/blender_urdf_visualizer/decimator blender_urdf_decimator
 Download the Windows Portable (.zip) version of Blender. Then
 
 1. Unzip Blender in the location you choose.
-1. Navigate to `<blender_folder>/2.90/scripts/addons_contrib`.
-1. Clone this repo into this directory.
+1. Clone this repo and move the `viewer` and `decimator` folders into `<blender_folder>/2.90/scripts/addons_contrib`.
 
 ### Enable the Addon
 
