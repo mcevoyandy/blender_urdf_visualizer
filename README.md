@@ -2,7 +2,7 @@
 
 v0.1.3
 
-Tested with Blender v2.90.1, v2.93.4
+Tested with Blender v2.90.1, v2.93.4, v3.2.1
 
 Available Add-ons:
 - URDF visualizer
